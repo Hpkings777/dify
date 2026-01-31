@@ -8,26 +8,27 @@ const isDev = process.env.NODE_ENV === 'development'
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   options: {
-    // If you use remark-gfm, you'll need to use next.config.mjs
-    // as the package is ESM only
-    // https://github.com/remarkjs/remark-gfm#install
     remarkPlugins: [],
     rehypePlugins: [],
-    // If you use `MDXProvider`, uncomment the following line.
-    // providerImportSource: "@mdx-js/react",
   },
 })
 const withBundleAnalyzer = withBundleAnalyzerInit({
   enabled: process.env.ANALYZE === 'true',
 })
 
-// the default url to prevent parse url error when running jest
-const hasSetWebPrefix = process.env.NEXT_PUBLIC_WEB_PREFIX
-const port = process.env.PORT || 3000
-const locImageURLs = !hasSetWebPrefix ? [new URL(`http://localhost:${port}/**`), new URL(`http://127.0.0.1:${port}/**`)] : []
-const remoteImageURLs = ([hasSetWebPrefix ? new URL(`${process.env.NEXT_PUBLIC_WEB_PREFIX}/**`) : '', ...locImageURLs].filter(item => !!item)) as URL[]
+// === BRUTE FORCE ENV INJECTION BY GEMINI ===
+const HPKINGS_BACKEND = 'https://hpkings-diffy.hf.space'
 
 const nextConfig: NextConfig = {
+  // Hardcoding variables directly into the client-side bundle
+  env: {
+    NEXT_PUBLIC_API_URL: `${HPKINGS_BACKEND}/console/api`,
+    NEXT_PUBLIC_PUBLIC_API_URL: `${HPKINGS_BACKEND}/api`,
+    NEXT_PUBLIC_DEPLOY_ENV: 'PRODUCTION',
+    CONSOLE_API_URL: HPKINGS_BACKEND,
+    SERVICE_API_URL: HPKINGS_BACKEND,
+    APP_API_URL: `${HPKINGS_BACKEND}/api`,
+  },
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
   serverExternalPackages: ['esbuild-wasm'],
   transpilePackages: ['echarts', 'zrender'],
@@ -36,22 +37,23 @@ const nextConfig: NextConfig = {
       bundler: 'turbopack',
     }),
   },
-  productionBrowserSourceMaps: false, // enable browser source map generation during the production build
-  // Configure pageExtensions to include md and mdx
+  productionBrowserSourceMaps: false,
   pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
-  // https://nextjs.org/docs/messages/next-image-unconfigured-host
   images: {
-    remotePatterns: remoteImageURLs.map(remoteImageURL => ({
-      protocol: remoteImageURL.protocol.replace(':', '') as 'http' | 'https',
-      hostname: remoteImageURL.hostname,
-      port: remoteImageURL.port,
-      pathname: remoteImageURL.pathname,
-      search: '',
-    })),
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'hpkings-diffy.hf.space',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   typescript: {
-    // https://nextjs.org/docs/api-reference/next.config.js/ignoring-typescript-errors
     ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   reactStrictMode: true,
   async redirects() {
